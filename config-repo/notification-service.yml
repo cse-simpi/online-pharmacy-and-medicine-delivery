@@ -1,0 +1,80 @@
+server:
+  port: 8085
+
+spring:
+  application:
+    name: notification-service
+
+  # ── RabbitMQ Configuration ──────────────────────────────────────────────────
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USER:guest}
+    password: ${RABBITMQ_PASS:guest}
+    virtual-host: /
+    listener:
+      simple:
+        acknowledge-mode: auto
+        retry:
+          enabled: true
+          initial-interval: 2s
+          max-retries: 3
+          multiplier: 2.0
+    connection-timeout: 5s
+
+  # ── Mail (SMTP) Configuration ───────────────────────────────────────────────
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: sd623099@gmail.com
+    password: yiixhhseoxwixkvp
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+            required: true
+          timeout: 5000
+          connectiontimeout: 5000
+          writetimeout: 5000
+
+# ── Eureka Discovery Configuration ────────────────────────────────────────────
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+    register-with-eureka: true
+    fetch-registry: true
+  instance:
+    prefer-ip-address: true
+
+# ── Monitoring & Tracing (Actuator & Zipkin) ──────────────────────────────────
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,tracing
+  tracing:
+    sampling:
+      probability: 1.0  # Captures 100% of requests for debugging
+  zipkin:
+    tracing:
+      endpoint: http://localhost:9411/api/v2/spans
+
+# ── Custom Notification Settings ──────────────────────────────────────────────
+notification:
+  mail:
+    from: sd623099@gmail.com
+    from-name: "Online Pharmacy Admin"
+
+# ── Logging ───────────────────────────────────────────────────────────────────
+logging:
+  level:
+    root: INFO
+    com.onlinePharmacy.notification: DEBUG 
+    org.springframework.mail: DEBUG
+    org.springframework.amqp: INFO
+  pattern:
+    # Service Name, Trace ID, and Span ID added to console logs
+    level: "%5p [${spring.application.name:},%X{traceId:-},%X{spanId:-}]"

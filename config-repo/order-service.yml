@@ -5,7 +5,6 @@ spring:
   application:
     name: order-service
   datasource:
-    # Use variables for the DB connection
     url: jdbc:mysql://${DB_HOST:localhost}:3306/pharmacy_orders?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true
     username: ${DB_USERNAME}
     password: ${DB_PASSWORD}
@@ -54,7 +53,19 @@ feign:
       default:
         connectTimeout: 3000
         readTimeout: 5000
-        loggerLevel: BASIC
+        loggerLevel: FULL # Increased logging to help you see headers in Docker logs
+
+# ── Resilience4j / Circuit Breaker (FIX FOR HEADER PROPAGATION) ──────────────
+resilience4j:
+  circuitbreaker:
+    configs:
+      default:
+        registerHealthIndicator: true
+        # This ensures the context (Headers) is shared across threads
+  timelimiter:
+    configs:
+      default:
+        timeoutDuration: 5s
 
 # ── API Documentation ────────────────────────────────────────────────────────
 springdoc:
@@ -68,5 +79,6 @@ logging:
   level:
     com.onlinePharmacy.order: DEBUG
     org.springframework.web: DEBUG
+    feign: DEBUG # Added to see the actual Feign request details
   pattern:
     level: "%5p [${spring.application.name:},%X{traceId:-},%X{spanId:-}]"

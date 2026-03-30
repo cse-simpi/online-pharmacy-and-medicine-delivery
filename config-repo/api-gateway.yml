@@ -14,6 +14,7 @@ spring:
       default-filters:
         - name: JwtAuthFilter
       routes:
+        # --- Standard Service Routes ---
         - id: auth-service
           uri: lb://auth-service
           predicates:
@@ -23,6 +24,7 @@ spring:
               args:
                 name: authCircuitBreaker
                 fallbackUri: forward:/fallback/auth
+        
         - id: catalog-service
           uri: lb://catalog-service
           predicates:
@@ -32,6 +34,7 @@ spring:
               args:
                 name: catalogCircuitBreaker
                 fallbackUri: forward:/fallback/catalog
+
         - id: order-service
           uri: lb://order-service
           predicates:
@@ -41,6 +44,7 @@ spring:
               args:
                 name: orderCircuitBreaker
                 fallbackUri: forward:/fallback/orders
+
         - id: admin-service
           uri: lb://admin-service
           predicates:
@@ -51,10 +55,54 @@ spring:
                 name: adminCircuitBreaker
                 fallbackUri: forward:/fallback/admin
 
+        # --- SWAGGER AGGREGATION ROUTES ---
+        # These routes allow the Gateway to pull JSON docs from each service
+        - id: auth-docs
+          uri: lb://auth-service
+          predicates:
+            - Path=/v3/api-docs/auth-service/**
+          filters:
+            - RewritePath=/v3/api-docs/auth-service(?<segment>.*), /v3/api-docs$\{segment}
+
+        - id: catalog-docs
+          uri: lb://catalog-service
+          predicates:
+            - Path=/v3/api-docs/catalog-service/**
+          filters:
+            - RewritePath=/v3/api-docs/catalog-service(?<segment>.*), /v3/api-docs$\{segment}
+
+        - id: order-docs
+          uri: lb://order-service
+          predicates:
+            - Path=/v3/api-docs/order-service/**
+          filters:
+            - RewritePath=/v3/api-docs/order-service(?<segment>.*), /v3/api-docs$\{segment}
+
+        - id: admin-docs
+          uri: lb://admin-service
+          predicates:
+            - Path=/v3/api-docs/admin-service/**
+          filters:
+            - RewritePath=/v3/api-docs/admin-service(?<segment>.*), /v3/api-docs$\{segment}
+
   data:
     redis:
-      host: ${REDIS_HOST:redis} # Changed to 'redis' to match docker service name
+      host: ${REDIS_HOST:redis}
       port: ${REDIS_PORT:6379}
+
+# ── Swagger Aggregator Configuration ──────────────────────────────────────────
+springdoc:
+  swagger-ui:
+    # This creates the dropdown menu in the Gateway Swagger UI
+    urls:
+      - name: "1. Auth Service"
+        url: /v3/api-docs/auth-service
+      - name: "2. Catalog Service"
+        url: /v3/api-docs/catalog-service
+      - name: "3. Order Service"
+        url: /v3/api-docs/order-service
+      - name: "4. Admin Service"
+        url: /v3/api-docs/admin-service
 
 # ── Monitoring & Actuator ─────────────────────────────────────────────────────
 management:
@@ -67,9 +115,9 @@ management:
       show-details: always
       show-components: always
       probes:
-        enabled: true # Enables Liveness and Readiness probes for Docker
+        enabled: true
     gateway:
-      enabled: true # Allows you to see the status of your routes via /actuator/gateway/routes
+      enabled: true
   tracing:
     sampling:
       probability: 1.0
